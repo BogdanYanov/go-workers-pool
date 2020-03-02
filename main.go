@@ -4,27 +4,27 @@ import (
 	"fmt"
 	"github.com/BogdanYanov/go-workers-pool/warehouse"
 	"github.com/BogdanYanov/go-workers-pool/work"
+	"time"
 )
 
 func main() {
-	var trucks = []work.Work{
-		work.NewTruck(100000),
-		work.NewTruck(50000),
-		work.NewTruck(200000),
-		work.NewTruck(20000),
-	}
-
 	wh := warehouse.NewWarehouse()
-
-	for i := 0; i < len(trucks); i++ {
-		wh.AddWork(trucks[i])
-	}
-
-	wh.StartWork(4)
-
-	for i := 0; i < len(trucks); i++ {
-		fmt.Printf("Truck #%d: available products - %d\n", i, trucks[i].AvailableWork())
-	}
-
-	fmt.Println("Products in warehouse -", wh.ProductsInStock())
+	truck1 := work.NewTruck(100000)
+	wh.Start(2)
+	wh.SendWork(truck1)
+	fmt.Println(truck1.AvailableWork())
+	wh.WorkersInfo()
+	time.Sleep(time.Second)
+	truck2 := work.NewTruck(100000)
+	wh.ChangeNumWorkers(4)
+	wh.SendWork(truck2)
+	fmt.Println(truck2.AvailableWork())
+	wh.WorkersInfo()
+	time.Sleep(2 * time.Second)
+	truck3 := work.NewTruck(100000)
+	wh.ChangeNumWorkers(100)
+	wh.SendWork(truck3)
+	fmt.Println(truck3.AvailableWork())
+	wh.WorkersInfo()
+	wh.Stop()
 }

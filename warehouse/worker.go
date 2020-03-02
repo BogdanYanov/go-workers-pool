@@ -6,48 +6,65 @@ import (
 	"sync"
 )
 
-var counter int32
-
 // Worker is an interface that contains methods for implementation as a worker
 type Worker interface {
 	GetID() int
 	Work()
+	Stop()
 	CountAmountWorkDone() int
 }
 
 // Unloader is an unloader abstraction that do unloading to warehouse.
 type Unloader struct {
 	ID                  int
-	assignedWork        chan work.Work
 	numProductsUnloaded int
+	assignedWork        chan work.Work
 	workDone            *sync.WaitGroup
+	stopped             *sync.WaitGroup
+	quit                chan struct{}
 }
 
 // NewUnloader creates new unloader.
-func NewUnloader(ID int, assignedWork chan work.Work, workDone *sync.WaitGroup) Worker {
+func NewUnloader(id int, assignedWork chan work.Work, workDone *sync.WaitGroup, stopped *sync.WaitGroup) Worker {
 	return &Unloader{
-		ID:           ID,
-		assignedWork: assignedWork,
-		workDone:     workDone,
+		ID:                  id,
+		numProductsUnloaded: 0,
+		assignedWork:        assignedWork,
+		workDone:            workDone,
+		stopped:             stopped,
+		quit:                make(chan struct{}),
 	}
 }
 
-// Work do incoming work from a warehouse work queue.
+// Work do incoming work from a warehouse work channel.
 func (u *Unloader) Work() {
-	for work := range u.assignedWork {
-		work.Do()
-		u.numProductsUnloaded++
-		u.workDone.Done()
-		runtime.Gosched()
-	}
+	go func() {
+		for {
+			select {
+			case job := <-u.assignedWork:
+				job.Do()
+				u.numProductsUnloaded++
+				u.workDone.Done()
+				runtime.Gosched()
+			case <-u.quit:
+				u.stopped.Done()
+				return
+			}
+		}
+	}()
 }
 
-// CountAmountWorkDone return the amount of work done by the worker.
-func (u *Unloader) CountAmountWorkDone() int {
-	return u.numProductsUnloaded
+// Stop stops the unloader.
+func (u *Unloader) Stop() {
+	u.quit <- struct{}{}
 }
 
-// GetID returns worker id.
+// GetID returns id of unloader.
 func (u *Unloader) GetID() int {
 	return u.ID
+}
+
+// CountAmountWorkDone return the amount of work done by the unloader.
+func (u *Unloader) CountAmountWorkDone() int {
+	return u.numProductsUnloaded
 }

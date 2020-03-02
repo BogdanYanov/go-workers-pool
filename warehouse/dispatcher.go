@@ -1,80 +1,117 @@
 package warehouse
 
 import (
+	"fmt"
 	"github.com/BogdanYanov/go-workers-pool/work"
 	"sync"
 )
 
-const workQueueCapacity = 10
-
-// Warehouse abstraction of the warehouse into which products are unloaded.
+// Warehouse is an abstraction of the warehouse into which products are unloaded.
 type Warehouse struct {
-	workers            []Worker
-	workQueue          []work.Work
-	workChannel        chan work.Work
-	productsNumInStock int
-	workDone           *sync.WaitGroup
+	workers      []Worker        // pool of goroutines
+	assignedWork chan work.Work  // the channel to which all work is sent
+	workDone     *sync.WaitGroup // WaitGroup to wait until all work is done
+	stopped      *sync.WaitGroup // WaitGroup to wait until all goroutines are completed
+	isStopped    bool            // boolean value of whether the warehouse is working
+	nowWork      int             // working goroutines counter
 }
 
 // NewWarehouse creates new warehouse.
 func NewWarehouse() *Warehouse {
 	return &Warehouse{
-		workDone:    &sync.WaitGroup{},
-		workChannel: make(chan work.Work),
+		workers:      nil,
+		assignedWork: make(chan work.Work),
+		workDone:     &sync.WaitGroup{},
+		stopped:      &sync.WaitGroup{},
+		isStopped:    true,
+		nowWork:      0,
 	}
 }
 
-// AddWork add work for execution.
-func (wh *Warehouse) AddWork(newWork work.Work) {
-	if wh.workQueue == nil {
-		wh.workQueue = make([]work.Work, 0, workQueueCapacity)
-	}
-	wh.workQueue = append(wh.workQueue, newWork)
-}
-
-// StartWork launches goroutines and performs work from the work queue array.
-func (wh *Warehouse) StartWork(workersNum int) {
-	if wh.workQueue == nil || len(wh.workQueue) == 0 {
+// Start launches unloaders work.
+func (w *Warehouse) Start(workersNum int) {
+	// if workersNum is less than 1, don`t start the work
+	if workersNum < 1 {
 		return
 	}
 
-	//wh.workers = make([]Worker, 0, workersNum)
-	wh.workers = make([]Worker, workersNum, workersNum)
-	wh.workChannel = make(chan work.Work)
-
-	var availableWork int32
-
-	for i := 0; i < len(wh.workQueue); i++ {
-		availableWork += wh.workQueue[i].AvailableWork()
+	// if the warehouse is already works, don`t start again
+	if !w.isStopped {
+		return
 	}
 
-	for i := 0; i < cap(wh.workers); i++ {
-		//wh.workers = append(wh.workers, NewUnloader(i, wh.workChannel, wh.wg))
-		wh.workers[i] = NewUnloader(i, wh.workChannel, wh.workDone)
-	}
-
-	wh.workDone.Add(int(availableWork))
-	for i := 0; i < len(wh.workers); i++ {
-		go wh.workers[i].Work()
-	}
-
-	for i := 0; i < len(wh.workQueue); {
-		currentAvailableWork := wh.workQueue[i].AvailableWork()
-		for j := 0; j < int(currentAvailableWork); j++ {
-			wh.workChannel <- wh.workQueue[i]
+	// if the warehouse does not have workers, create them
+	if w.workers == nil {
+		w.workers = make([]Worker, workersNum, workersNum)
+		for i := 0; i < workersNum; i++ {
+			w.workers[i] = NewUnloader(i, w.assignedWork, w.workDone, w.stopped)
 		}
-		wh.workQueue = wh.workQueue[1:]
 	}
 
-	close(wh.workChannel)
-	wh.workDone.Wait()
+	// add all working goroutines to WaitGroup and set the value for nowWork counter
+	w.stopped.Add(workersNum)
+	w.nowWork = workersNum
+	for i := 0; i < workersNum; i++ {
+		w.workers[i].Work()
+	}
+	w.isStopped = false
+}
 
-	for i := 0; i < len(wh.workers); i++ {
-		wh.productsNumInStock += wh.workers[i].CountAmountWorkDone()
+// ChangeNumWorkers change number of working unloaders.
+func (w *Warehouse) ChangeNumWorkers(newNumWorkers int) {
+	if w.isStopped {
+		return
+	}
+
+	if len(w.workers) > newNumWorkers {
+		diff := len(w.workers) - newNumWorkers
+		for i := 1; i <= diff; i++ {
+			w.workers[len(w.workers)-i].Stop()
+		}
+		w.nowWork = w.nowWork - diff
+	}
+
+	if len(w.workers) < newNumWorkers {
+		diff := newNumWorkers - len(w.workers)
+		for i := 0; i < diff; i++ {
+			w.workers = append(w.workers, NewUnloader(len(w.workers), w.assignedWork, w.workDone, w.stopped))
+			w.stopped.Add(1)
+			w.workers[len(w.workers)-1].Work()
+		}
+		w.nowWork = w.nowWork + diff
 	}
 }
 
-// ProductsInStock return the number of products in the warehouse.
-func (wh *Warehouse) ProductsInStock() int {
-	return wh.productsNumInStock
+// SendWork send work for execution.
+func (w *Warehouse) SendWork(newWork work.Work) {
+	availableWork := int(newWork.AvailableWork())
+
+	w.workDone.Add(availableWork)
+	go func() {
+		for i := 0; i < availableWork; i++ {
+			w.assignedWork <- newWork
+		}
+	}()
+
+	w.workDone.Wait()
+}
+
+// Stop stops all working unloaders.
+func (w *Warehouse) Stop() {
+	if w.isStopped {
+		return
+	}
+	for i := 0; i < w.nowWork; i++ {
+		w.workers[i].Stop()
+	}
+	w.stopped.Wait()
+	w.nowWork = 0
+	w.isStopped = true
+}
+
+// WorkersInfo displays information about all unloaders in warehouse.
+func (w *Warehouse) WorkersInfo() {
+	for i := 0; i < len(w.workers); i++ {
+		fmt.Printf("Worker #%d; total products unload - %d\n", w.workers[i].GetID(), w.workers[i].CountAmountWorkDone())
+	}
 }
