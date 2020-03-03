@@ -8,12 +8,13 @@ import (
 
 // Warehouse is an abstraction of the warehouse into which products are unloaded.
 type Warehouse struct {
-	workers      []Worker        // pool of goroutines
-	assignedWork chan work.Work  // the channel to which all work is sent
-	workDone     *sync.WaitGroup // WaitGroup to wait until all work is done
-	stopped      *sync.WaitGroup // WaitGroup to wait until all goroutines are completed
-	isStopped    bool            // boolean value of whether the warehouse is working
-	nowWork      int             // working goroutines counter
+	workers       []Worker        // pool of goroutines
+	stockProducts int             // number of products in stock
+	assignedWork  chan work.Work  // the channel to which all work is sent
+	workDone      *sync.WaitGroup // WaitGroup to wait until all work is done
+	stopped       *sync.WaitGroup // WaitGroup to wait until all goroutines are completed
+	isStopped     bool            // boolean value of whether the warehouse is working
+	nowWork       int             // working goroutines counter
 }
 
 // NewWarehouse creates new warehouse.
@@ -28,7 +29,7 @@ func NewWarehouse() *Warehouse {
 	}
 }
 
-// Start launches unloaders work.
+// Start launches employees work.
 func (w *Warehouse) Start(workersNum int) {
 	// if workersNum is less than 1, don`t start the work
 	if workersNum < 1 {
@@ -44,7 +45,7 @@ func (w *Warehouse) Start(workersNum int) {
 	if w.workers == nil {
 		w.workers = make([]Worker, workersNum, workersNum)
 		for i := 0; i < workersNum; i++ {
-			w.workers[i] = NewUnloader(i, w.assignedWork, w.workDone, w.stopped)
+			w.workers[i] = NewEmployee(i+1, w.assignedWork, w.workDone, w.stopped)
 		}
 	}
 
@@ -57,27 +58,56 @@ func (w *Warehouse) Start(workersNum int) {
 	w.isStopped = false
 }
 
-// ChangeNumWorkers change number of working unloaders.
+// ChangeNumWorkers change number of working employees.
 func (w *Warehouse) ChangeNumWorkers(newNumWorkers int) {
+	// if new number of working employees less than 1 - can`t change number of working employees
+	if newNumWorkers < 1 {
+		return
+	}
+
+	// if the warehouse is stopped - can`t change number of working employees
 	if w.isStopped {
 		return
 	}
 
-	if len(w.workers) > newNumWorkers {
-		diff := len(w.workers) - newNumWorkers
+	// if new number of work employees less than number of employees that working now - need to stop employees
+	if w.nowWork > newNumWorkers {
+		diff := w.nowWork - newNumWorkers
 		for i := 1; i <= diff; i++ {
-			w.workers[len(w.workers)-i].Stop()
+			w.workers[w.nowWork-i].Stop()
 		}
+
 		w.nowWork = w.nowWork - diff
+		return
 	}
 
-	if len(w.workers) < newNumWorkers {
-		diff := newNumWorkers - len(w.workers)
-		for i := 0; i < diff; i++ {
-			w.workers = append(w.workers, NewUnloader(len(w.workers), w.assignedWork, w.workDone, w.stopped))
-			w.stopped.Add(1)
-			w.workers[len(w.workers)-1].Work()
+	// if new number of work employees less than number of employees that working now - need to start employees
+	if w.nowWork < newNumWorkers {
+		diff := newNumWorkers - w.nowWork
+		if w.nowWork == len(w.workers) {
+			for i := 0; i < diff; i++ {
+				w.workers = append(w.workers, NewEmployee(len(w.workers)+1, w.assignedWork, w.workDone, w.stopped))
+				w.stopped.Add(1)
+				w.workers[len(w.workers)-1].Work()
+			}
+		} else if (w.nowWork + diff) <= len(w.workers) {
+			for i := w.nowWork; i < w.nowWork+diff; i++ {
+				w.stopped.Add(1)
+				w.workers[i].Work()
+			}
+		} else if w.nowWork < len(w.workers) && newNumWorkers > len(w.workers) {
+			for i := w.nowWork; i < len(w.workers); i++ {
+				w.stopped.Add(1)
+				w.workers[i].Work()
+			}
+			diff := newNumWorkers - len(w.workers)
+			for i := 0; i < diff; i++ {
+				w.workers = append(w.workers, NewEmployee(len(w.workers)+1, w.assignedWork, w.workDone, w.stopped))
+				w.stopped.Add(1)
+				w.workers[len(w.workers)-1].Work()
+			}
 		}
+
 		w.nowWork = w.nowWork + diff
 	}
 }
@@ -90,13 +120,14 @@ func (w *Warehouse) SendWork(newWork work.Work) {
 	go func() {
 		for i := 0; i < availableWork; i++ {
 			w.assignedWork <- newWork
+			w.stockProducts++
 		}
 	}()
 
 	w.workDone.Wait()
 }
 
-// Stop stops all working unloaders.
+// Stop stops all working employees.
 func (w *Warehouse) Stop() {
 	if w.isStopped {
 		return
@@ -109,9 +140,14 @@ func (w *Warehouse) Stop() {
 	w.isStopped = true
 }
 
-// WorkersInfo displays information about all unloaders in warehouse.
+// WorkersInfo displays information about all employees in warehouse.
 func (w *Warehouse) WorkersInfo() {
 	for i := 0; i < len(w.workers); i++ {
 		fmt.Printf("Worker #%d; total products unload - %d\n", w.workers[i].GetID(), w.workers[i].CountAmountWorkDone())
 	}
+}
+
+// ProductsInStock displays total number of products in warehouse.
+func (w *Warehouse) ProductsInStock() int {
+	return w.stockProducts
 }

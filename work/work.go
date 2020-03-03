@@ -38,3 +38,27 @@ func (t *Truck) unload() {
 func (t *Truck) Do() {
 	t.unload()
 }
+
+type Ship struct {
+	productsNum int32
+	productsCapacity int32
+}
+
+func NewShip(productsCapacity int32) Work {
+	return &Ship{
+		productsNum:      0,
+		productsCapacity: productsCapacity,
+	}
+}
+
+func (s *Ship) AvailableWork() int32 {
+	return s.productsCapacity
+}
+
+func (s *Ship) load() {
+	atomic.AddInt32(&s.productsNum, 1)
+}
+
+func (s *Ship) Do() {
+	s.load()
+}

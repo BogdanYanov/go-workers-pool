@@ -316,6 +316,37 @@ func TestWarehouse_ChangeNumWorkers(t *testing.T) {
 			do:           func(w *Warehouse) {},
 			wantNowWorks: 4,
 		},
+		{
+			name: "ChangeNumWorkers() case 4",
+			args: args{
+				workersNum:    2,
+				newNumWorkers: 0,
+			},
+			do:           func(w *Warehouse) {},
+			wantNowWorks: 2,
+		},
+		{
+			name: "ChangeNumWorkers() case 5",
+			args: args{
+				workersNum:    10,
+				newNumWorkers: 12,
+			},
+			do: func(w *Warehouse) {
+				w.ChangeNumWorkers(6)
+			},
+			wantNowWorks: 12,
+		},
+		{
+			name: "ChangeNumWorkers() case 5",
+			args: args{
+				workersNum:    10,
+				newNumWorkers: 8,
+			},
+			do: func(w *Warehouse) {
+				w.ChangeNumWorkers(6)
+			},
+			wantNowWorks: 8,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -328,5 +359,29 @@ func TestWarehouse_ChangeNumWorkers(t *testing.T) {
 				t.Errorf("ChangeNumWorkers(): nowWork = %d, want - %d", w.nowWork, tt.wantNowWorks)
 			}
 		})
+	}
+}
+
+func TestWarehouse_ProductsInStock(t *testing.T) {
+	w := NewWarehouse()
+
+	w.Start(2)
+
+	trucks := []work.Work{
+		work.NewTruck(100000),
+		work.NewTruck(20000),
+	}
+
+	var totalProducts int32
+
+	for i := 0; i < len(trucks); i++ {
+		totalProducts += trucks[i].AvailableWork()
+		w.SendWork(trucks[i])
+	}
+
+	w.Stop()
+
+	if w.ProductsInStock() != int(totalProducts) {
+		t.Errorf("ProductsInStock(): got = %d, want - %d", w.ProductsInStock(), totalProducts)
 	}
 }

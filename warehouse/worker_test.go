@@ -6,20 +6,20 @@ import (
 	"testing"
 )
 
-func TestNewUnloader(t *testing.T) {
+func TestNewEmployee(t *testing.T) {
 	var (
 		assignedWork = make(chan work.Work)
 		workDone     = &sync.WaitGroup{}
 		stopped      = &sync.WaitGroup{}
 	)
 
-	u := NewUnloader(0, assignedWork, workDone, stopped)
-	if u == nil {
-		t.Errorf("NewUnloader(): Unloader is nil")
+	e := NewEmployee(0, assignedWork, workDone, stopped)
+	if e == nil {
+		t.Errorf("NewEmployee(): Employee is nil")
 	}
 }
 
-func TestUnloader_Work(t *testing.T) {
+func TestEmployee_Work(t *testing.T) {
 	var (
 		productsNum  = 100
 		truck        = work.NewTruck(int32(productsNum))
@@ -59,20 +59,20 @@ func TestUnloader_Work(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewUnloader(tt.fields.ID, tt.fields.assignedWork, tt.fields.workDone, tt.fields.stopped)
+			e := NewEmployee(tt.fields.ID, tt.fields.assignedWork, tt.fields.workDone, tt.fields.stopped)
 			stopped.Add(1)
-			u.Work()
+			e.Work()
 			workDone.Wait()
-			u.Stop()
+			e.Stop()
 			stopped.Wait()
-			if got := u.CountAmountWorkDone(); got != tt.want {
+			if got := e.CountAmountWorkDone(); got != tt.want {
 				t.Errorf("CountAmountWorkDone() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestUnloader_GetID(t *testing.T) {
+func TestEmployee_GetID(t *testing.T) {
 	type fields struct {
 		ID int
 	}
@@ -98,8 +98,8 @@ func TestUnloader_GetID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := NewUnloader(tt.fields.ID, nil, nil, nil)
-			if got := u.GetID(); got != tt.want {
+			e := NewEmployee(tt.fields.ID, nil, nil, nil)
+			if got := e.GetID(); got != tt.want {
 				t.Errorf("GetID() = %v, want %v", got, tt.want)
 			}
 		})

@@ -14,57 +14,57 @@ type Worker interface {
 	CountAmountWorkDone() int
 }
 
-// Unloader is an unloader abstraction that do unloading to warehouse.
-type Unloader struct {
-	ID                  int
-	numProductsUnloaded int
-	assignedWork        chan work.Work
-	workDone            *sync.WaitGroup
-	stopped             *sync.WaitGroup
-	quit                chan struct{}
+// Employee is an employee abstraction that do unloading to warehouse.
+type Employee struct {
+	ID           int
+	numWorkDone  int
+	assignedWork chan work.Work
+	workDone     *sync.WaitGroup
+	stopped      *sync.WaitGroup
+	quit         chan struct{}
 }
 
-// NewUnloader creates new unloader.
-func NewUnloader(id int, assignedWork chan work.Work, workDone *sync.WaitGroup, stopped *sync.WaitGroup) Worker {
-	return &Unloader{
-		ID:                  id,
-		numProductsUnloaded: 0,
-		assignedWork:        assignedWork,
-		workDone:            workDone,
-		stopped:             stopped,
-		quit:                make(chan struct{}),
+// NewEmployee creates new employee.
+func NewEmployee(id int, assignedWork chan work.Work, workDone *sync.WaitGroup, stopped *sync.WaitGroup) Worker {
+	return &Employee{
+		ID:           id,
+		numWorkDone:  0,
+		assignedWork: assignedWork,
+		workDone:     workDone,
+		stopped:      stopped,
+		quit:         make(chan struct{}),
 	}
 }
 
 // Work do incoming work from a warehouse work channel.
-func (u *Unloader) Work() {
+func (e *Employee) Work() {
 	go func() {
 		for {
 			select {
-			case job := <-u.assignedWork:
+			case job := <-e.assignedWork:
 				job.Do()
-				u.numProductsUnloaded++
-				u.workDone.Done()
+				e.numWorkDone++
+				e.workDone.Done()
 				runtime.Gosched()
-			case <-u.quit:
-				u.stopped.Done()
+			case <-e.quit:
+				e.stopped.Done()
 				return
 			}
 		}
 	}()
 }
 
-// Stop stops the unloader.
-func (u *Unloader) Stop() {
-	u.quit <- struct{}{}
+// Stop stops the employee.
+func (e *Employee) Stop() {
+	e.quit <- struct{}{}
 }
 
-// GetID returns id of unloader.
-func (u *Unloader) GetID() int {
-	return u.ID
+// GetID returns id of employee.
+func (e *Employee) GetID() int {
+	return e.ID
 }
 
-// CountAmountWorkDone return the amount of work done by the unloader.
-func (u *Unloader) CountAmountWorkDone() int {
-	return u.numProductsUnloaded
+// CountAmountWorkDone return the amount of work done by the employee.
+func (e *Employee) CountAmountWorkDone() int {
+	return e.numWorkDone
 }
