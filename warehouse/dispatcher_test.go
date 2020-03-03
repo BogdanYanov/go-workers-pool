@@ -175,7 +175,7 @@ func TestWarehouse_Stop(t *testing.T) {
 	}
 }
 
-func BenchmarkWarehouse_StartWork(b *testing.B) {
+func BenchmarkWarehouse_SendWork(b *testing.B) {
 	var productsNum int32 = 100000
 
 	type args struct {
@@ -187,77 +187,77 @@ func BenchmarkWarehouse_StartWork(b *testing.B) {
 		args args
 	}{
 		{
-			name: "Benchmark StartWork() case 1 - 1 worker",
+			name: "Benchmark SendWork() case 1 - 1 worker",
 			args: args{
 				workersNum:  1,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 2 - 2 workers",
+			name: "Benchmark SendWork() case 2 - 2 workers",
 			args: args{
 				workersNum:  2,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 3 - 10 workers",
+			name: "Benchmark SendWork() case 3 - 10 workers",
 			args: args{
 				workersNum:  10,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 4 - 50 workers",
+			name: "Benchmark SendWork() case 4 - 50 workers",
 			args: args{
 				workersNum:  50,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 5 - 100 workers",
+			name: "Benchmark SendWork() case 5 - 100 workers",
 			args: args{
 				workersNum:  100,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 6 - 500 workers",
+			name: "Benchmark SendWork() case 6 - 500 workers",
 			args: args{
 				workersNum:  500,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 7 - 1000 workers",
+			name: "Benchmark SendWork() case 7 - 1000 workers",
 			args: args{
 				workersNum:  1000,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 8 - 5000 workers",
+			name: "Benchmark SendWork() case 8 - 5000 workers",
 			args: args{
 				workersNum:  5000,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 9 - 10000 workers",
+			name: "Benchmark SendWork() case 9 - 10000 workers",
 			args: args{
 				workersNum:  10000,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 10 - 50000 workers",
+			name: "Benchmark SendWork() case 10 - 50000 workers",
 			args: args{
 				workersNum:  50000,
 				productsNum: productsNum,
 			},
 		},
 		{
-			name: "Benchmark StartWork() case 11 - 100000 workers",
+			name: "Benchmark SendWork() case 11 - 100000 workers",
 			args: args{
 				workersNum:  100000,
 				productsNum: productsNum,

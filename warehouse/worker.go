@@ -2,7 +2,7 @@ package warehouse
 
 import (
 	"github.com/BogdanYanov/go-workers-pool/work"
-	"runtime"
+	_ "runtime"
 	"sync"
 )
 
@@ -45,7 +45,7 @@ func (e *Employee) Work() {
 				job.Do()
 				e.numWorkDone++
 				e.workDone.Done()
-				runtime.Gosched()
+				//runtime.Gosched()
 			case <-e.quit:
 				e.stopped.Done()
 				return
