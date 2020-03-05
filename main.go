@@ -2,50 +2,36 @@ package main
 
 import (
 	"fmt"
-	"github.com/BogdanYanov/go-workers-pool/warehouse"
-	"github.com/BogdanYanov/go-workers-pool/work"
-	"time"
+	"github.com/BogdanYanov/go-workers-pool/job"
+	"github.com/BogdanYanov/go-workers-pool/worker"
 )
 
 func main() {
-	wh := warehouse.NewWarehouse()
 
-	truck1 := work.NewTruck(100000)
+	var (
+		jobQueue job.Queue
+		dispatcher worker.Dispatcher
+		truck *job.Truck
+		warehouseJob job.Job
+	)
 
-	wh.Start(10)
-	wh.SendWork(truck1)
+	jobQueue = job.QueueInit(0)
 
-	fmt.Println(truck1.AvailableWork())
-	wh.WorkersInfo()
+	dispatcher = worker.WarehouseInit(100, jobQueue)
 
-	time.Sleep(time.Second)
+	dispatcher.Run()
 
-	truck2 := work.NewTruck(100000)
+	truck = job.NewTruck(100000)
 
-	wh.ChangeNumWorkers(1)
-	wh.SendWork(truck2)
+	warehouseJob = job.NewJob(truck)
 
-	fmt.Println(truck2.AvailableWork())
-	wh.WorkersInfo()
+	availableWork := truck.AvailableWork()
 
-	time.Sleep(2 * time.Second)
+	for i := 0; i < int(availableWork); i++ {
+		jobQueue.SendJob(warehouseJob)
+	}
 
-	truck3 := work.NewTruck(100000)
+	dispatcher.Stop()
 
-	wh.ChangeNumWorkers(8)
-	wh.SendWork(truck3)
-
-	fmt.Println(truck3.AvailableWork())
-	wh.WorkersInfo()
-
-	truck4 := work.NewTruck(100000)
-	wh.ChangeNumWorkers(12)
-	wh.SendWork(truck4)
-
-	fmt.Println(truck4.AvailableWork())
-	wh.WorkersInfo()
-
-	wh.Stop()
-
-	wh.ProductsInStock()
+	fmt.Println(truck.AvailableWork())
 }

@@ -1,0 +1,13 @@
+mode: set
+github.com/BogdanYanov/go-workers-pool/job/queue.go:5.35,6.17 1 1
+github.com/BogdanYanov/go-workers-pool/job/queue.go:9.2,9.32 1 1
+github.com/BogdanYanov/go-workers-pool/job/queue.go:6.17,8.3 1 1
+github.com/BogdanYanov/go-workers-pool/job/queue.go:12.33,14.2 1 1
+github.com/BogdanYanov/go-workers-pool/job/job.go:16.31,18.2 1 1
+github.com/BogdanYanov/go-workers-pool/job/job.go:26.41,27.21 1 1
+github.com/BogdanYanov/go-workers-pool/job/job.go:30.2,30.41 1 1
+github.com/BogdanYanov/go-workers-pool/job/job.go:27.21,29.3 1 1
+github.com/BogdanYanov/go-workers-pool/job/job.go:34.39,36.2 1 1
+github.com/BogdanYanov/go-workers-pool/job/job.go:38.26,39.24 1 1
+github.com/BogdanYanov/go-workers-pool/job/job.go:39.24,41.3 1 1
+github.com/BogdanYanov/go-workers-pool/job/job.go:45.27,47.2 1 1
